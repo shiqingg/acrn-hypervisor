@@ -10,7 +10,7 @@
 #ifndef RISCV_PERCPU_H
 #define RISCV_PERCPU_H
 
-#include <common/smp.h>
+#include <common/notify.h>
 #include <types.h>
 
 struct per_cpu_region {
