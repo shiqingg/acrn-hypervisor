@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-2024 Intel Corporation. All rights reserved.
+ * Copyright (C) 2023-2025 Intel Corporation.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -7,11 +7,33 @@
  *   Haicheng Li <haicheng.li@intel.com>
  */
 
-#include <softirq.h>
+#include <asm/irq.h>
 #include <asm/timer.h>
-#include "trap.h"
+#include <asm/trap.h>
+#include <cpu.h>
+#include <logmsg.h>
+#include <notify.h>
+#include <softirq.h>
 
-#define MAX_IRQ_HANDLER		6
+static void unexpected_trap_handler(const struct intr_excp_ctx *ctx)
+{
+	pr_err("Unexpected S mode trap 0x%lx\n", ctx->regs.cause);
+
+	/* Halt the CPU */
+	cpu_dead();
+}
+
+/* IRQ 1 - Supervisor software interrupt handler */
+static void s_sw_irq_handler(void)
+{
+	cpu_csr_clear(sip, IP_IE_SSI);
+	handle_smp_call();
+}
+
+static void dispatch_exception(const struct intr_excp_ctx *ctx)
+{
+	unexpected_trap_handler(ctx);
+}
 
 /*
  * FIXME:
@@ -21,35 +43,35 @@
  * code table. Abstract PLIC/AIA as a irqchip that implement a get_irq API
  * to do the mapping between irq_num and PLIC source id or AIA's MSI.
  */
-void sexpt_handler(void)
+/**
+ * TODO: add support for handler registration via request_irq() and
+ *       further adoption of the common IRQ framework.
+ */
+static void dispatch_interrupt(const struct intr_excp_ctx *ctx)
 {
-	/* TODO: add early_printk here to announce Panic */
-	while(1) {};
-}
+	uint64_t trap_cause = ctx->regs.cause & (~TRAP_CAUSE_INTERRUPT_BITMASK);
 
-static void stimer_handler(void)
-{
-	timer_irq_handler();
-}
-
-/* The irq handler array is not complete. So far, only timer handler is added. */
-static irq_handler_t sirq_handler[] = {
-	sexpt_handler,
-	sexpt_handler,
-	sexpt_handler,
-	sexpt_handler,
-	sexpt_handler,
-	stimer_handler,
-	sexpt_handler,
-};
-
-void sint_handler(int irq)
-{
-	if (irq < MAX_IRQ_HANDLER) {
-		sirq_handler[irq]();
-	} else {
-		sirq_handler[MAX_IRQ_HANDLER]();
+	switch (trap_cause) {
+	case TRAP_CAUSE_IRQ_S_SOFT:
+		s_sw_irq_handler();
+		break;
+	case TRAP_CAUSE_IRQ_S_TIMER:
+		timer_irq_handler();
+		break;
+	/* TODO: add support for external interrupt */
+	default:
+		unexpected_trap_handler(ctx);
+		break;
 	}
 
 	do_softirq();
+}
+
+void dispatch_trap(const struct intr_excp_ctx *ctx)
+{
+	if ((ctx->regs.cause & TRAP_CAUSE_INTERRUPT_BITMASK) == 0UL) {
+		dispatch_exception(ctx);
+	} else {
+		dispatch_interrupt(ctx);
+	}
 }

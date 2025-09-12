@@ -24,6 +24,8 @@
 /* hypervisor stack bottom magic('intl') */
 #define SP_BOTTOM_MAGIC    0x696e746cUL
 
+#ifndef ASSEMBLER
+
 /* CPU states defined */
 enum pcpu_boot_state {
         PCPU_STATE_RESET = 0U,
@@ -65,5 +67,7 @@ static inline void asm_pause(void)
 {
 	arch_asm_pause();
 }
+
+#endif /* ASSEMBLER */
 
 #endif /* COMMON_CPU_H */

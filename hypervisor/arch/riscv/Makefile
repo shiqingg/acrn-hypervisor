@@ -38,6 +38,7 @@ ARCH_ASFLAGS += -march=rv64$(subst $() $(),_,$(RV_ISA))
 
 # HV host assembly sources
 HOST_S_SRCS += arch/riscv/boot/cpu_entry.S
+HOST_S_SRCS += arch/riscv/intr.S
 
 # HV host C sources
 HOST_C_SRCS += arch/riscv/init.c
@@ -47,6 +48,7 @@ HOST_C_SRCS += arch/riscv/timer.c
 HOST_C_SRCS += arch/riscv/trap.c
 HOST_C_SRCS += arch/riscv/cpu.c
 HOST_C_SRCS += arch/riscv/logmsg.c
+HOST_C_SRCS += arch/riscv/irq.c
 
 # Virtual platform assembly sources
 VP_S_SRCS +=
