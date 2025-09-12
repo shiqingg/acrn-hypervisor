@@ -10,6 +10,14 @@
 #ifndef RISCV_IRQ_H
 #define RISCV_IRQ_H
 
+#include <cpu.h>
+
 #define IPI_NOTIFY_CPU		0
+
+struct intr_excp_ctx {
+	struct cpu_regs regs;
+};
+
+void init_interrupt(uint16_t pcpu_id);
 
 #endif /* RISCV_IRQ_H */
