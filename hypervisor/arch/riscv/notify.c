@@ -18,5 +18,5 @@ void arch_init_smp_call(void)
 
 void arch_smp_call_kick_pcpu(uint16_t pcpu_id)
 {
-	arch_send_single_ipi(pcpu_id, IPI_NOTIFY_CPU);
+	send_single_ipi(pcpu_id, IPI_NOTIFY_CPU);
 }
