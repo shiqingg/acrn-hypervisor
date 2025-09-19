@@ -91,6 +91,6 @@ void arch_smp_call_kick_pcpu(uint16_t pcpu_id)
 	if ((vcpu != NULL) && (is_lapic_pt_enabled(vcpu))) {
 		vcpu_make_request(vcpu, ACRN_REQUEST_SMP_CALL);
 	} else {
-		arch_send_single_ipi(pcpu_id, NOTIFY_VCPU_VECTOR);
+		send_single_ipi(pcpu_id, NOTIFY_VCPU_VECTOR);
 	}
 }
