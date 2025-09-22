@@ -46,5 +46,5 @@ void init_interrupt(uint16_t pcpu_id)
 {
 	init_interrupt_arch(pcpu_id);
 
-	CPU_IRQ_ENABLE_ON_CONFIG();
+	local_irq_enable();
 }

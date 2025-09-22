@@ -68,6 +68,42 @@ static inline void asm_pause(void)
 	arch_asm_pause();
 }
 
+/* The mandatory functions should be implemented by arch. */
+static inline void arch_local_irq_enable(void);
+static inline void arch_local_irq_disable(void);
+static inline void arch_local_irq_save(uint64_t *flags_ptr);
+static inline void arch_local_irq_restore(uint64_t flags);
+
+static inline void local_irq_enable(void)
+{
+	arch_local_irq_enable();
+}
+
+static inline void local_irq_disable(void)
+{
+	arch_local_irq_disable();
+}
+
+/* This function locks out interrupts and saves the current architecture status
+ * register / state register to the specified address.  This function does not
+ * attempt to mask any bits in the return register value and can be used as a
+ * quick method to guard a critical section.
+ * NOTE:  This function is used in conjunction with local_irq_restore().
+ */
+static inline void local_irq_save(uint64_t *flags_ptr){
+	arch_local_irq_save(flags_ptr);
+}
+
+/* This function restores the architecture status / state register used to lockout
+ * interrupts to the value provided.  The intent of this function is to be a
+ * fast mechanism to restore the interrupt level at the end of a critical
+ * section to its original level.
+ * NOTE:  This function is used in conjunction with local_irq_save().
+ */
+static inline void local_irq_restore(uint64_t flags)
+{
+	arch_local_irq_restore(flags);
+}
 #endif /* ASSEMBLER */
 
 #endif /* COMMON_CPU_H */

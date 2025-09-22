@@ -122,26 +122,36 @@ static inline void arch_asm_pause(void)
 		asm volatile (" csrc " STRINGIFY(reg) ", %0 \n\t" :: "r"(mask): "memory");                             \
 	})
 
-/**
- * FIXME: to follow multi-arch design, refactor all of them into static inline functions with corresponding
- *        X86 implementation together.
- */
-#define local_irq_disable() asm volatile("csrc sstatus, %0\n" ::"i"(SSTATUS_SIE) : "memory")
-#define local_irq_enable() asm volatile("csrs sstatus, %0\n" ::"i"(SSTATUS_SIE) : "memory")
-#define local_save_flags(x) ({ asm volatile("csrr %0, sstatus, 0\n" : "=r"(x)::"memory"); })
-#define local_irq_restore(x) ({ asm volatile("csrs sstatus, %0\n" ::"rK"(x & SSTATUS_SIE) : "memory"); })
-#define local_irq_save(x)                                                                                              \
-	({                                                                                                             \
-		uint64_t val = 0UL;                                                                                    \
-		asm volatile("csrrc %0, sstatus, %1\n" : "=r"(val) : "i"(SSTATUS_SIE) : "memory");                     \
-		*(uint64_t *)(x) = val;                                                                                \
-	})
+static inline void arch_local_irq_enable(void)
+{
+	asm volatile ("csrs sstatus, %0 \n"
+			:: "i"(SSTATUS_SIE)
+			: "memory");
+}
 
-#define CPU_INT_ALL_DISABLE(x) local_irq_save(x)
-#define CPU_INT_ALL_RESTORE(x) local_irq_restore(x)
+static inline void arch_local_irq_disable(void)
+{
+	asm volatile ("csrc sstatus, %0 \n"
+			:: "i"(SSTATUS_SIE)
+			: "memory");
+}
 
-#define CPU_IRQ_ENABLE_ON_CONFIG	local_irq_enable
-#define CPU_IRQ_DISABLE_ON_CONFIG	local_irq_disable
+static inline void arch_local_irq_save(uint64_t *flags_ptr)
+{
+	uint64_t val = 0UL;
+
+	/* read and clear the SSTATUS_SIE bit (disable interrupts) */
+	asm volatile("csrrc %0, sstatus, %1 \n"
+			: "=r"(val)
+			: "r"(SSTATUS_SIE)
+			: "memory");
+	*flags_ptr = val;
+}
+
+static inline void arch_local_irq_restore(uint64_t flags)
+{
+	asm volatile("csrs sstatus, %0 \n" ::"rK"(flags & SSTATUS_SIE) : "memory");
+}
 
 void wait_sync_change(volatile const uint64_t *sync, uint64_t wake_sync);
 void init_percpu_hart_id(uint32_t bsp_hart_id);
