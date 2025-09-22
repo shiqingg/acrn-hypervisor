@@ -133,7 +133,7 @@ static inline void arch_asm_pause(void)
 #define local_irq_save(x)                                                                                              \
 	({                                                                                                             \
 		uint32_t val = 0U;                                                                                     \
-		asm volatile("csrrc %0, sstatus, 0\n" : "=r"(val) : "i"(SSTATUS_SIE) : "memory");                      \
+		asm volatile("csrrc %0, sstatus, %1\n" : "=r"(val) : "i"(SSTATUS_SIE) : "memory");                     \
 		*(uint32_t *)(x) = val;                                                                                \
 	})
 
