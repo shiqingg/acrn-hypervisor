@@ -521,16 +521,6 @@ static inline void asm_safe_hlt(void)
 	asm volatile ("sti; hlt; cli" : : : "cc");
 }
 
-/* Disables interrupts on the current CPU */
-#ifdef CONFIG_KEEP_IRQ_DISABLED
-#define CPU_IRQ_DISABLE_ON_CONFIG()		do { } while (0)
-#else
-#define CPU_IRQ_DISABLE_ON_CONFIG()                         \
-{                                                           \
-	asm volatile ("cli\n" : : : "cc");                  \
-}
-#endif
-
 /* Enables interrupts on the current CPU
  * If CONFIG_KEEP_IRQ_DISABLED is 'y', all interrupts
  * received in root mode will be handled in external interrupt
@@ -538,14 +528,20 @@ static inline void asm_safe_hlt(void)
  * Permanently turning off interrupts in root mode can be useful in
  * many scenarios (e.g., x86_tee).
  */
-#ifdef CONFIG_KEEP_IRQ_DISABLED
-#define CPU_IRQ_ENABLE_ON_CONFIG()		do { } while (0)
-#else
-#define CPU_IRQ_ENABLE_ON_CONFIG()                          \
-{                                                           \
-	asm volatile ("sti\n" : : : "cc");                  \
-}
+static inline void arch_local_irq_enable(void)
+{
+#ifndef CONFIG_KEEP_IRQ_DISABLED
+	asm volatile ("sti\n" : : : "cc");
 #endif
+}
+
+/* Disables interrupts on the current CPU */
+static inline void arch_local_irq_disable(void)
+{
+#ifndef CONFIG_KEEP_IRQ_DISABLED
+	asm volatile ("cli\n" : : : "cc");
+#endif
+}
 
 /* This macro writes the stack pointer. */
 static inline void cpu_sp_write(uint64_t *stack_ptr)
@@ -591,47 +587,30 @@ cpu_rdtscp_execute(uint64_t *timestamp_ptr, uint32_t *cpu_id_ptr)
 	*timestamp_ptr = ((uint64_t)tsh << 32U) | tsl;
 }
 
-/* Macro to save rflags register */
-#define CPU_RFLAGS_SAVE(rflags_ptr)                     \
-{                                                       \
-	asm volatile (" pushf");                        \
-	asm volatile (" pop %0"                         \
-			: "=r" (*(rflags_ptr))          \
-			: /* No inputs */);             \
+static inline void cpu_rflags_save(uint64_t *rflags_ptr)
+{
+	asm volatile (" pushf \n\t"
+			" pop %0"
+			: "=r" (*(rflags_ptr))
+			: /* No inputs */);
 }
 
-/* Macro to restore rflags register */
-#define CPU_RFLAGS_RESTORE(rflags)                      \
-{                                                       \
-	asm volatile (" push %0\n\t"			\
-			"popf	\n\t": : "r" (rflags)	\
-			:"cc");				\
+static inline void cpu_rflags_restore(uint64_t rflags)
+{
+	asm volatile (" push %0\n\t"
+			"popf	\n\t": : "r" (rflags)
+			:"cc");
 }
 
-/* This macro locks out interrupts and saves the current architecture status
- * register / state register to the specified address.  This function does not
- * attempt to mask any bits in the return register value and can be used as a
- * quick method to guard a critical section.
- * NOTE:  This macro is used in conjunction with CPU_INT_ALL_RESTORE
- *        defined below and CPU_INT_CONTROL_VARS defined above.
- */
-
-#define CPU_INT_ALL_DISABLE(p_rflags)               \
-{                                                   \
-	CPU_RFLAGS_SAVE(p_rflags);	             \
-	CPU_IRQ_DISABLE_ON_CONFIG();                    \
+static inline void arch_local_irq_save(uint64_t *flags_ptr)
+{
+	cpu_rflags_save(flags_ptr);
+	arch_local_irq_disable();
 }
 
-/* This macro restores the architecture status / state register used to lockout
- * interrupts to the value provided.  The intent of this function is to be a
- * fast mechanism to restore the interrupt level at the end of a critical
- * section to its original level.
- * NOTE:  This macro is used in conjunction with CPU_INT_ALL_DISABLE
- *        and CPU_INT_CONTROL_VARS defined above.
- */
-#define CPU_INT_ALL_RESTORE(rflags)                 \
-{                                                   \
-	CPU_RFLAGS_RESTORE(rflags);                 \
+static inline void arch_local_irq_restore(uint64_t flags)
+{
+	cpu_rflags_restore(flags);
 }
 
 #define ACRN_PSEUDO_PCPUID_MSR		MSR_IA32_SYSENTER_CS

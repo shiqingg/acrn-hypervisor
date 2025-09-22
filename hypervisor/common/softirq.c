@@ -55,9 +55,9 @@ void do_softirq(void)
 	if (per_cpu(softirq_servicing, cpu_id) == 0U) {
 		per_cpu(softirq_servicing, cpu_id) = 1U;
 
-		CPU_IRQ_ENABLE_ON_CONFIG();
+		local_irq_enable();
 		do_softirq_internal(cpu_id);
-		CPU_IRQ_DISABLE_ON_CONFIG();
+		local_irq_disable();
 
 		do_softirq_internal(cpu_id);
 		per_cpu(softirq_servicing, cpu_id) = 0U;

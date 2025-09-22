@@ -10,7 +10,7 @@
 #include <asm/cpu_caps.h>
 #include <asm/io.h>
 #include <asm/tsc.h>
-#include <asm/cpu.h>
+#include <cpu.h>
 #include <logmsg.h>
 #include <acpi.h>
 
@@ -116,11 +116,11 @@ static uint64_t hpet_calibrate_tsc(uint32_t cal_ms_arg)
 	uint64_t delta_tsc, delta_fs;
 	uint64_t rflags, tsc_khz;
 
-	CPU_INT_ALL_DISABLE(&rflags);
+	local_irq_save(&rflags);
 	tsc1 = tsc_read_hpet(&hpet1);
 	pit_calibrate_tsc(cal_ms_arg);
 	tsc2 = tsc_read_hpet(&hpet2);
-	CPU_INT_ALL_RESTORE(rflags);
+	local_irq_restore(rflags);
 
 	/* in case counter wrap happened in the low 32 bits */
 	if (hpet2 <= hpet1) {

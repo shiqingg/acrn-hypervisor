@@ -10,7 +10,7 @@
 #ifndef ASSEMBLER
 #include <types.h>
 #include <rtl.h>
-#include <asm/cpu.h>
+#include <cpu.h>
 #include <asm/lib/spinlock.h>
 
 /* The common spinlock type */
@@ -28,14 +28,14 @@ static inline void spinlock_init(spinlock_t *lock)
 
 static inline void spinlock_irqsave_obtain(spinlock_t *lock, uint64_t * flags)
 {
-	CPU_INT_ALL_DISABLE(flags);
+	local_irq_save(flags);
 	arch_spinlock_obtain(lock);
 }
 
 static inline void spinlock_irqrestore_release(spinlock_t *lock, uint64_t flags)
 {
 	arch_spinlock_release(lock);
-	CPU_INT_ALL_RESTORE(flags);
+	local_irq_restore(flags);
 }
 
 static inline void spinlock_obtain(spinlock_t *lock)

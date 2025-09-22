@@ -99,13 +99,13 @@ static void ptirq_enqueue_softirq(struct ptirq_remapping_info *entry)
 	uint64_t rflags;
 
 	/* enqueue request in order, SOFTIRQ_PTDEV will pickup */
-	CPU_INT_ALL_DISABLE(&rflags);
+	local_irq_save(&rflags);
 
 	/* avoid adding recursively */
 	list_del(&entry->softirq_node);
 	/* TODO: assert if entry already in list */
 	list_add_tail(&entry->softirq_node, &get_cpu_var(softirq_dev_entry_list));
-	CPU_INT_ALL_RESTORE(rflags);
+	local_irq_restore(rflags);
 	fire_softirq(SOFTIRQ_PTDEV);
 }
 
@@ -121,7 +121,7 @@ struct ptirq_remapping_info *ptirq_dequeue_softirq(uint16_t pcpu_id)
 	uint64_t rflags;
 	struct ptirq_remapping_info *entry = NULL;
 
-	CPU_INT_ALL_DISABLE(&rflags);
+	local_irq_save(&rflags);
 
 	while (!list_empty(&get_cpu_var(softirq_dev_entry_list))) {
 		entry = get_first_item(&per_cpu(softirq_dev_entry_list, pcpu_id), struct ptirq_remapping_info, softirq_node);
@@ -138,7 +138,7 @@ struct ptirq_remapping_info *ptirq_dequeue_softirq(uint16_t pcpu_id)
 		}
 	}
 
-	CPU_INT_ALL_RESTORE(rflags);
+	local_irq_restore(rflags);
 	return entry;
 }
 
@@ -172,10 +172,10 @@ void ptirq_release_entry(struct ptirq_remapping_info *entry)
 {
 	uint64_t rflags;
 
-	CPU_INT_ALL_DISABLE(&rflags);
+	local_irq_save(&rflags);
 	list_del_init(&entry->softirq_node);
 	del_timer(&entry->intr_delay_timer);
-	CPU_INT_ALL_RESTORE(rflags);
+	local_irq_restore(rflags);
 
 	bitmap_clear((entry->ptdev_entry_id) & 0x3FU, &ptirq_entry_bitmaps[entry->ptdev_entry_id >> 6U]);
 

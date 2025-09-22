@@ -397,11 +397,11 @@ void cpu_do_idle(void)
 		struct acrn_vcpu *vcpu = get_ever_run_vcpu(pcpu_id);
 
 		if ((vcpu != NULL) && !is_lapic_pt_enabled(vcpu)) {
-			CPU_IRQ_ENABLE_ON_CONFIG();
+			local_irq_enable();
 		}
 		asm_pause();
 		if ((vcpu != NULL) && !is_lapic_pt_enabled(vcpu)) {
-			CPU_IRQ_DISABLE_ON_CONFIG();
+			local_irq_disable();
 		}
 	}
 #endif
